@@ -13,32 +13,41 @@
 module Data.Function.Plumbers.TH where
 
 import Data.List (intersperse)
+import Data.Maybe (catMaybes)
 import Language.Haskell.TH
 
-operatorNames :: [String]
-operatorNames = map ('$':) post ++ map ('*':) post
- where
-  post = concatMap (sequence . (`replicate` "^<>&")) [1..4]
+operatorNames :: Char -> [[String]]
+operatorNames o = map (map (o:) . sequence . (`replicate` "^<>&*")) [1..4]
 
 -- | For now this is just a string-yielding function, to be evaluated by the
 --   user, to generate the line defining the fixities.
-aritiesString  :: String
-aritiesString = "infixr 9 " ++ concat (intersperse ", " operatorNames)
+aritiesString :: Char -> String
+aritiesString = unlines
+              . map (("infixr 9 "++) . concat . intersperse ", ")
+              . operatorNames
 
 --TODO: generate better type declarations
 
-implementPlumbers :: DecsQ
-implementPlumbers = return $ map implement operatorNames
+implementPlumbers :: Char -> DecsQ
+implementPlumbers = return . map implement . concat . operatorNames
  where
   implement :: String -> Dec
-  implement n@(o:vs) = FunD (mkName n) [Clause binds (NormalB body) []]
+  implement (o:vs) = FunD (mkName (o:vs)) [Clause binds (NormalB body) []]
    where
-    binds = map (VarP . mkName) $ ["f1", "f2"] ++ varNames
-    appsE = foldl1 AppE . map (VarE . mkName)
+    vars = zip vs $ zip ['a','c'..'y'] ['b','d'..'z']
+
+    binds = map mkVP ["f1", "f2"] ++ map mkBind vars
+    mkVP = VarP . mkName
+    mkBind ('*', (a, b)) = TupP [mkVP [a], mkVP [b]]
+    mkBind (_,   (a, _))   = mkVP [a]
+
+    body = mkOp (mkF "f1" "<&*") (mkF "f2" ">&*")
     mkOp l r | o == '$' = InfixE (Just l) (VarE $ mkName "$") (Just r)
              | o == '*' = TupE [l, r]
-    body = mkOp (appsE $ "f1" : [v | (v, o) <- vars, o `elem` "<&"])
-                (appsE $ "f2" : [v | (v, o) <- vars, o `elem` ">&"])
-
-    vars = zip varNames vs
-    varNames = take (length vs) $ map (:[]) ['a'..'z']
+    mkVE = VarE . mkName
+    mkF f es = foldl1 AppE . (mkVE f:) . catMaybes $ map mkParam vars
+     where
+      mkParam ('*', (a, b)) = Just $ mkVE [if f == "f1" then a else b]
+      mkParam (e,   (a, _))
+        | e `elem` es = Just $ mkVE [a]
+        | otherwise = Nothing
