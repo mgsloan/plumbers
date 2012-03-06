@@ -27,7 +27,6 @@ aritiesString n = unlines
                 . map (("infixr 9 "++) . concat . intersperse ", ")
                 . operatorNames n
 
---TODO: generate better type declarations
 
 data PlumberSpec = PlumberSpec
  { plumberOpE        :: Exp -> Exp -> Exp     -- ^ Operation to apply to function results
