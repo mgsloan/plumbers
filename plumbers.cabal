@@ -19,5 +19,6 @@ Library
   Build-Depends:     base >= 4.2 && < 4.6,
                      template-haskell >= 2.4 && < 2.8
   Hs-source-dirs:    src
+  Ghc-Options:       -Wall
   Exposed-Modules:   Data.Function.Plumbers
                      Data.Function.Plumbers.TH
