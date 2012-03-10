@@ -12,7 +12,7 @@
 -----------------------------------------------------------------------------
 module Data.Function.Plumbers.TH
   ( implementPlumbers, implementPlumber
-  , PlumberSpec(..), baseSpec, compositionSpec, productSpec
+  , PlumberSpec(..), baseSpec, compositionSpec, productSpec, lbindSpec, rbindSpec
   , operatorNames, aritiesString
   ) where
 
@@ -21,53 +21,80 @@ import Data.Bits (testBit)
 import Data.List (intersperse)
 import Language.Haskell.TH
 
--- | Specifies all of the information needed to implement a plumber.
-data PlumberSpec = PlumberSpec
- { plumberOpE        :: Exp -> Exp -> Exp     -- ^ Operation to apply to function results
- , plumberLeftTypes  :: [String] -> [String]  -- ^ Transformation on left argument list types
- , plumberRightTypes :: [String] -> [String]  -- ^ Transformation on right argument list types
- , plumberResultType :: Type                  -- ^ Results type
- , plumberMinArity   :: Int                   -- ^ Maximum arity to generate
- , plumberMaxArity   :: Int                   -- ^ Maximum arity to generate
- , plumberPrefix     :: String                -- ^ Prefix to use for operator
+-- | Specifies all of the information needed to construct type declarations for the
+--   plumber.
+data PlumberTypes = PlumberTypes
+ { leftType    :: Type               -- ^ Type of the left argument's result
+ , rightType   :: Type               -- ^ Type of the right argument's result
+ , resultType  :: Type               -- ^ Results type.  Must be an appropriate forall
  }
 
-baseSpec, compositionSpec, productSpec :: PlumberSpec
+-- | Specifies all of the information needed to implement a plumber.
+data PlumberSpec = PlumberSpec
+ { plumberOpE      :: Exp -> Exp -> Exp  -- ^ Operation to apply to function results
+ , plumberTypes    :: Maybe PlumberTypes -- ^ Optional explicit type declarations
+ , plumberArities  :: [Int]              -- ^ Arities to generate. 26 is max.
+ , plumberPrefix   :: String             -- ^ Prefix to use for operator
+ }
 
-baseSpec = PlumberSpec
-  { plumberOpE        = undefined
-  , plumberLeftTypes  = id
-  , plumberRightTypes = id
-  , plumberResultType = mkVT "r1"
-  , plumberMinArity   = 1
-  , plumberMaxArity   = 3
-  , plumberPrefix     = undefined
+baseTypes = PlumberTypes
+  { leftType   = mkVT "r'"
+  , rightType  = mkVT "r''"
+  , resultType = ForallT [mkVB "r'", mkVB "r''"] [] undefined
   }
 
-compositionSpec = baseSpec
-  { plumberOpE        = (\l r -> InfixE (Just l) (mkVE "$") (Just r))
-  , plumberLeftTypes  = (++ ["r2"])
-  , plumberPrefix     = "$"
+
+baseSpec :: String -> String -> PlumberSpec
+
+baseSpec p e = PlumberSpec
+  { plumberOpE      = (\l r -> InfixE (Just l) (mkVE e) (Just r))
+  , plumberTypes    = Nothing
+  , plumberArities  = [1..3]
+  , plumberPrefix   = p
   }
 
-productSpec = baseSpec
-  { plumberOpE        = (\l r -> TupE [l, r]) 
-  , plumberResultType = tuplesT [mkVT "r1", mkVT "r2"]
-  , plumberPrefix     = "*"
-  } 
+productSpec, compositionSpec, lbindSpec, rbindSpec :: PlumberSpec
 
-{-
-bindSpec = baseSpec
-  { plumberOpE        = (\l r -> InfixE (Just l) (mkVE "=<<") (Just r)) 
+productSpec =     (baseSpec "*" "_")    { plumberTypes = Just productTypes
+                                        , plumberOpE   = (\l r -> TupE [l, r]) }
 
-  , plumberPrefix     = "<="
-  } )
- -}
+compositionSpec = (baseSpec "$" "$")    { plumberTypes = Just compositionTypes }
+
+lbindSpec       = (baseSpec "<=" "=<<") { plumberTypes = Just lbindTypes }
+
+rbindSpec       = (baseSpec ">=" ">>=") { plumberTypes = Just rbindTypes }
+
+productTypes = baseTypes 
+  { resultType = addForalls (resultType baseTypes) . ForallT [] []
+               $ tuplesT [leftType baseTypes, rightType baseTypes]
+  }
+
+compositionTypes = baseTypes 
+  { leftType   = arrowsT [rightType baseTypes, leftType baseTypes]
+  , resultType = addForalls (resultType baseTypes) . ForallT [] []
+               $ leftType baseTypes
+  }
+
+rbindTypes = baseTypes
+  { leftType   = arrowsT [rightType baseTypes, result]
+  , rightType  = AppT m $ rightType baseTypes
+  , resultType = addForalls (resultType baseTypes)
+               $ ForallT [mkVB "m"] [ClassP (mkName "Monad") [m]] result
+  }
+ where
+  m = mkVT "m"
+  result = AppT m $ leftType baseTypes
+
+lbindTypes = baseTypes
+  { leftType   = leftType   rbindTypes
+  , rightType  = rightType  rbindTypes
+  , resultType = resultType rbindTypes
+  }
 
 -- | All of the operator names that the given PlumberSpec would implement.
 operatorNames :: PlumberSpec -> [[String]]
 operatorNames s = map (map (plumberPrefix s ++) . sequence . (`replicate` "^<>&*"))
-                      [plumberMinArity s .. plumberMaxArity s]
+                $ plumberArities s
 
 -- | For now this is just a string-yielding function, to be evaluated by the
 --   user, to generate the line defining the fixities.  This code should be
@@ -83,14 +110,11 @@ implementPlumbers spec = concat <$> mapM (implementPlumber spec) (concat $ opera
 
 -- | Implement only the specific plumber requested.
 implementPlumber :: PlumberSpec -> String -> DecsQ
-implementPlumber spec name@(_:vs)
-  = return
-    [ SigD (mkName name) typ
-    , FunD (mkName name) [Clause binds (NormalB body) []]
-    ]
+implementPlumber spec name
+  = return $ maybe [] ((:[]) . sig) (plumberTypes spec) ++ [func] 
  where
   directives :: [(Int, Either String (String, String))]
-  directives = rec vs (map (:[]) ['a'..'z'])
+  directives = rec (drop (length $ plumberPrefix spec) name) (map (:[]) ['a'..'z'])
    where
     rec [] _ = []
     rec ('^':xs) (y  :ys) = (0, Left y)       : rec xs ys
@@ -104,14 +128,22 @@ implementPlumber spec name@(_:vs)
   args1 = [either id fst x | (i, x) <- directives, testBit i 0]
   args2 = [either id snd x | (i, x) <- directives, testBit i 1]
 
-  typ = ForallT (map mkVB $ names ++ ["r1", "r2"]) [] . arrowsT
-      $ [ arrowsT . map mkVT $ (plumberLeftTypes  spec) args1 ++ ["r1"]
-        , arrowsT . map mkVT $ (plumberRightTypes spec) args2 ++ ["r2"] ]
+  sig types
+    = SigD (mkName name)
+    . ForallT (map mkVB names ++ bs) ctx
+    . arrowsT
+    $ [ arrowsT $ map mkVT args1 ++ [leftType  types]
+      , arrowsT $ map mkVT args2 ++ [rightType types] ]
       ++ map mkTyp params
-      ++ [plumberResultType spec]
+      ++ [rt]
+   where
+    (ForallT bs ctx rt) = resultType types
+
   --TODO: make/find helpers library?
   mkTyp (Right (a, b)) = tuplesT [mkVT a, mkVT b]
   mkTyp (Left a) = mkVT a
+
+  func = FunD (mkName name) [Clause binds (NormalB body) []]
 
   binds = map mkVP ["f1", "f2"] ++ map mkBind directives
   mkBind (0, _) = WildP
@@ -141,3 +173,6 @@ mkVT :: String -> Type
 mkVT = VarT . mkName
 mkVB :: String -> TyVarBndr
 mkVB = PlainTV . mkName
+
+addForalls :: Type -> Type -> Type
+addForalls (ForallT b c _) (ForallT b' c' t) = ForallT (b ++ b') (c ++ c') t
