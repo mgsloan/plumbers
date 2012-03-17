@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Function.Plumbers.TH
+-- Module      :  Control.Plumbers.TH
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
@@ -11,7 +11,7 @@
 -- convention for routing parameters.
 --
 -----------------------------------------------------------------------------
-module Data.Function.Plumbers.TH
+module Control.Plumbers.TH
   ( PlumberSpec (..), baseSpec
   , PlumberTypes(..), baseTypes
   , implementPlumbers, implementPlumber

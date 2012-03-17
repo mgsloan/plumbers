@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Function.Plumbers.Monad
+-- Module      :  Control.Plumbers.Monad
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
@@ -10,10 +10,10 @@
 -- This module contains the bind
 --
 -----------------------------------------------------------------------------
-module Data.Function.Plumbers.Monad where
+module Control.Plumbers.Monad where
 
-import Data.Function.Plumbers.TH (implementPlumbers)
-import Data.Function.Plumbers.Specs (rbindSpec, lbindSpec, flbindSpec, frbindSpec)
+import Control.Plumbers.TH (implementPlumbers)
+import Control.Plumbers.Specs (rbindSpec, lbindSpec, flbindSpec, frbindSpec)
 
 $(implementPlumbers rbindSpec)
 infixr 9 >=^, >=<, >=>, >=&, >=*

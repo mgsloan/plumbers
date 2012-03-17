@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Function.Plumbers.TH
+-- Module      :  Control.Plumbers.TH
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
@@ -14,12 +14,12 @@
 -- See the plumbers post at <www.mgsloan.com> for more information.
 --
 -----------------------------------------------------------------------------
-module Data.Function.Plumbers where
+module Control.Plumbers where
 
 import Prelude hiding ((**))
 
-import Data.Function.Plumbers.TH (implementPlumbers)
-import Data.Function.Plumbers.Specs (compositionSpec, productSpec)
+import Control.Plumbers.TH (implementPlumbers)
+import Control.Plumbers.Specs (compositionSpec, productSpec)
 
 $(implementPlumbers compositionSpec)
 

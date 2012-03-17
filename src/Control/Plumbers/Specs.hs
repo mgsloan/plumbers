@@ -1,20 +1,20 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Function.Plumbers.Specs
+-- Module      :  Control.Plumbers.Specs
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This module defines the specifications used by "Data.Function.Plumbers" and
--- "Data.Function.Plumbers.Monad".  These need to be defined in a separate
--- module in order to handle GHC Template Haskell staging restrictions.
+-- This module defines the specifications used by "Control.Plumbers" and
+-- "Control.Plumbers.Monad".  These need to be defined in a separate module 
+-- in order to handle GHC Template Haskell staging restrictions.
 --
 -----------------------------------------------------------------------------
-module Data.Function.Plumbers.Specs where
+module Control.Plumbers.Specs where
 
-import Data.Function.Plumbers.TH
+import Control.Plumbers.TH
 import Language.Haskell.TH
   (Exp(TupE), Type(AppT, ForallT), Pred(ClassP), mkName)
 

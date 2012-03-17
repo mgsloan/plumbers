@@ -20,7 +20,7 @@ Library
                      template-haskell >= 2.4 && < 2.8
   Hs-source-dirs:    src
   Ghc-Options:       -Wall
-  Exposed-Modules:   Data.Function.Plumbers
-                     Data.Function.Plumbers.Monad
-                     Data.Function.Plumbers.Specs
-                     Data.Function.Plumbers.TH
+  Exposed-Modules:   Control.Plumbers
+                     Control.Plumbers.Monad
+                     Control.Plumbers.Specs
+                     Control.Plumbers.TH
