@@ -28,14 +28,19 @@ import Data.Bits (testBit)
 import Data.List (intersperse)
 import Language.Haskell.TH
 
--- | Specifies all of the information needed to construct type declarations for the
---   plumber.
+-- | Specifies all of the information needed to construct type declarations
+--   for the plumber.
 data PlumberTypes = PlumberTypes
- { leftType    :: Type               -- ^ Type of the left argument's result
- , rightType   :: Type               -- ^ Type of the right argument's result
- , resultType  :: Type               -- ^ Results type.  Must be an appropriate forall
+ { leftType   :: Type  -- ^ Type of the left argument's result
+ , rightType  :: Type  -- ^ Type of the right argument's result
+ , resultType :: Type  -- ^ Results type.  This needs to be wrapped in a
+                       --   forall naming all of the utilized type variables.
  }
 
+-- | A basic set of types, which make r' the left type, and r'' the right type.
+--   The resultType is a forall that introduces these type variables, and has 
+--   undefined content.  Therefore any implementation in terms of baseTypes
+--   needs to redefine resultType, as the Forall has undefined as its content.
 baseTypes :: PlumberTypes
 baseTypes = PlumberTypes
   { leftType   = mkVT "r'"
@@ -45,10 +50,10 @@ baseTypes = PlumberTypes
 
 -- | Specifies all of the information needed to implement a plumber.
 data PlumberSpec = PlumberSpec
- { plumberOpE      :: Exp -> Exp -> Exp  -- ^ Operation to apply to function results
- , plumberTypes    :: Maybe PlumberTypes -- ^ Optional explicit type declarations
- , plumberArities  :: [Int]              -- ^ Arities to generate. 26 is max.
- , plumberPrefix   :: String             -- ^ Prefix to use for operator
+ { plumberOpE     :: Exp -> Exp -> Exp  -- ^ The plumber implementation
+ , plumberTypes   :: Maybe PlumberTypes -- ^ Optional explicit type signatures
+ , plumberArities :: [Int]              -- ^ Arities to generate - 26 is max
+ , plumberPrefix  :: String             -- ^ Prefix to use for operator
  }
 
 baseSpec :: String -> String -> PlumberSpec
@@ -61,20 +66,24 @@ baseSpec p e = PlumberSpec
 
 -- | All of the operator names that the given PlumberSpec would implement.
 operatorNames :: PlumberSpec -> [[String]]
-operatorNames s = map (map (plumberPrefix s ++) . sequence . (`replicate` "^<>&*"))
-                $ plumberArities s
+operatorNames s
+  = map (map (plumberPrefix s ++) . sequence . (`replicate` "^<>&*"))
+  $ plumberArities s
 
 -- | For now this is just a string-yielding function, to be evaluated by the
 --   user, to generate the line defining the fixities.  This code should be
 --   pasted below the TH invocation of implementPlumbers
 aritiesString :: PlumberSpec -> String
-aritiesString = unlines
-              . map (("infixr 9 "++) . concat . intersperse ", ")
-              . operatorNames
+aritiesString
+  = unlines
+  . map (("infixr 9 "++) . concat . intersperse ", ")
+  . operatorNames
 
 -- | Implements all of the plumbers specified by the given @PlumberSpec@.
 implementPlumbers :: PlumberSpec -> DecsQ
-implementPlumbers spec = concat <$> mapM (implementPlumber spec) (concat $ operatorNames spec)
+implementPlumbers spec
+  = concat <$> mapM (implementPlumber spec)
+                    (concat $ operatorNames spec)
 
 -- | Implement only the specific plumber requested.
 implementPlumber :: PlumberSpec -> String -> DecsQ
@@ -82,8 +91,9 @@ implementPlumber spec name
   = return $ maybe [] ((:[]) . sig) (plumberTypes spec) ++ [func] 
  where
   directives :: [(Int, Either String (String, String))]
-  directives = rec (drop (length $ plumberPrefix spec) name) (map (:[]) ['a'..'z'])
+  directives = rec dirs (map (:[]) ['a'..'z'])
    where
+    dirs = drop (length $ plumberPrefix spec) name
     rec [] _ = []
     rec ('^':xs) (y  :ys) = (0, Left y)       : rec xs ys
     rec ('<':xs) (y  :ys) = (1, Left y)       : rec xs ys
@@ -107,7 +117,6 @@ implementPlumber spec name
    where
     (ForallT bs ctx rt) = resultType types
 
-  --TODO: make/find helpers library?
   mkTyp (Right (a, b)) = tuplesT [mkVT a, mkVT b]
   mkTyp (Left a) = mkVT a
 
@@ -125,7 +134,7 @@ implementPlumber spec name
 
 -- TODO: consider whether tricks like http://hpaste.org/54367 could aid this
 
--- TODO: domain-generic construction methods for TH.  E.g. have a "var" function
+-- TODO: domain-generic construction methods for TH. E.g. have a "var" function
 -- that is polymorphic on return type.
 
 appsT, arrowsT, tuplesT :: [Type] -> Type
