@@ -7,13 +7,20 @@
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This module is used by Data.Function.Plumbers to generate the operators.
+-- This module is used to generate operators that follow the plumbers symbolic
+-- convention for routing parameters.
 --
 -----------------------------------------------------------------------------
 module Data.Function.Plumbers.TH
-  ( implementPlumbers, implementPlumber
-  , PlumberSpec(..), baseSpec, compositionSpec, productSpec, lbindSpec, rbindSpec
+  ( PlumberSpec (..), baseSpec
+  , PlumberTypes(..), baseTypes
+  , implementPlumbers, implementPlumber
   , operatorNames, aritiesString
+
+  -- * TH Utilities
+  , appsT, arrowsT, tuplesT
+  , mkVE, mkVP, mkVT, mkVB
+  , addForalls
   ) where
 
 import Control.Applicative ((<$>))
@@ -29,6 +36,13 @@ data PlumberTypes = PlumberTypes
  , resultType  :: Type               -- ^ Results type.  Must be an appropriate forall
  }
 
+baseTypes :: PlumberTypes
+baseTypes = PlumberTypes
+  { leftType   = mkVT "r'"
+  , rightType  = mkVT "r''"
+  , resultType = ForallT [mkVB "r'", mkVB "r''"] [] undefined
+  }
+
 -- | Specifies all of the information needed to implement a plumber.
 data PlumberSpec = PlumberSpec
  { plumberOpE      :: Exp -> Exp -> Exp  -- ^ Operation to apply to function results
@@ -37,58 +51,12 @@ data PlumberSpec = PlumberSpec
  , plumberPrefix   :: String             -- ^ Prefix to use for operator
  }
 
-baseTypes = PlumberTypes
-  { leftType   = mkVT "r'"
-  , rightType  = mkVT "r''"
-  , resultType = ForallT [mkVB "r'", mkVB "r''"] [] undefined
-  }
-
-
 baseSpec :: String -> String -> PlumberSpec
-
 baseSpec p e = PlumberSpec
   { plumberOpE      = (\l r -> InfixE (Just l) (mkVE e) (Just r))
   , plumberTypes    = Nothing
   , plumberArities  = [1..3]
   , plumberPrefix   = p
-  }
-
-productSpec, compositionSpec, lbindSpec, rbindSpec :: PlumberSpec
-
-productSpec =     (baseSpec "*" "_")    { plumberTypes = Just productTypes
-                                        , plumberOpE   = (\l r -> TupE [l, r]) }
-
-compositionSpec = (baseSpec "$" "$")    { plumberTypes = Just compositionTypes }
-
-lbindSpec       = (baseSpec "<=" "=<<") { plumberTypes = Just lbindTypes }
-
-rbindSpec       = (baseSpec ">=" ">>=") { plumberTypes = Just rbindTypes }
-
-productTypes = baseTypes 
-  { resultType = addForalls (resultType baseTypes) . ForallT [] []
-               $ tuplesT [leftType baseTypes, rightType baseTypes]
-  }
-
-compositionTypes = baseTypes 
-  { leftType   = arrowsT [rightType baseTypes, leftType baseTypes]
-  , resultType = addForalls (resultType baseTypes) . ForallT [] []
-               $ leftType baseTypes
-  }
-
-rbindTypes = baseTypes
-  { leftType   = arrowsT [rightType baseTypes, result]
-  , rightType  = AppT m $ rightType baseTypes
-  , resultType = addForalls (resultType baseTypes)
-               $ ForallT [mkVB "m"] [ClassP (mkName "Monad") [m]] result
-  }
- where
-  m = mkVT "m"
-  result = AppT m $ leftType baseTypes
-
-lbindTypes = baseTypes
-  { leftType   = leftType   rbindTypes
-  , rightType  = rightType  rbindTypes
-  , resultType = resultType rbindTypes
   }
 
 -- | All of the operator names that the given PlumberSpec would implement.
@@ -176,3 +144,4 @@ mkVB = PlainTV . mkName
 
 addForalls :: Type -> Type -> Type
 addForalls (ForallT b c _) (ForallT b' c' t) = ForallT (b ++ b') (c ++ c') t
+addForalls (ForallT b c _) x = ForallT b c x

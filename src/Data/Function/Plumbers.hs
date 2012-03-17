@@ -11,12 +11,15 @@
 -- This module exports 2 * (5 + 5^2 + 5^3) = 310 operators, all `pointless'
 -- combinators for composing functions together with additional plumbing.
 --
+-- See the plumbers post at <www.mgsloan.com> for more information.
+--
 -----------------------------------------------------------------------------
 module Data.Function.Plumbers where
 
 import Prelude hiding ((**))
 
-import Data.Function.Plumbers.TH
+import Data.Function.Plumbers.TH (implementPlumbers)
+import Data.Function.Plumbers.Specs (compositionSpec, productSpec)
 
 $(implementPlumbers compositionSpec)
 
@@ -31,4 +34,3 @@ infixr 9 *^, *<, *>, *&, **
 infixr 9 *^^, *^<, *^>, *^&, *^*, *<^, *<<, *<>, *<&, *<*, *>^, *><, *>>, *>&, *>*, *&^, *&<, *&>, *&&, *&*, **^, **<, **>, **&, ***
 infixr 9 *^^^, *^^<, *^^>, *^^&, *^^*, *^<^, *^<<, *^<>, *^<&, *^<*, *^>^, *^><, *^>>, *^>&, *^>*, *^&^, *^&<, *^&>, *^&&, *^&*, *^*^, *^*<, *^*>, *^*&, *^**, *<^^, *<^<, *<^>, *<^&, *<^*, *<<^, *<<<, *<<>, *<<&, *<<*, *<>^, *<><, *<>>, *<>&, *<>*, *<&^, *<&<, *<&>, *<&&, *<&*, *<*^, *<*<, *<*>, *<*&, *<**, *>^^, *>^<, *>^>, *>^&, *>^*, *><^, *><<, *><>, *><&, *><*, *>>^, *>><, *>>>, *>>&, *>>*, *>&^, *>&<, *>&>, *>&&, *>&*, *>*^, *>*<, *>*>, *>*&, *>**, *&^^, *&^<, *&^>, *&^&, *&^*, *&<^, *&<<, *&<>, *&<&, *&<*, *&>^, *&><, *&>>, *&>&, *&>*, *&&^, *&&<, *&&>, *&&&, *&&*, *&*^, *&*<, *&*>, *&*&, *&**, **^^, **^<, **^>, **^&, **^*, **<^, **<<, **<>, **<&, **<*, **>^, **><, **>>, **>&, **>*, **&^, **&<, **&>, **&&, **&*, ***^, ***<, ***>, ***&, ****
 
--- $(implementPlumbers rbindSpec)
