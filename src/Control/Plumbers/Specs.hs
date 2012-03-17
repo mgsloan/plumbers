@@ -15,27 +15,28 @@
 module Control.Plumbers.Specs where
 
 import Control.Plumbers.TH
+
 import Language.Haskell.TH
   (Exp(TupE), Type(AppT, ForallT), Pred(ClassP), mkName)
 
 productSpec :: PlumberSpec
-productSpec     = (baseSpec "*" "_")    { plumberTypes = Just productTypes
-                                        , plumberOpE   = (\l r -> TupE [l, r]) }
+productSpec     = (baseSpec "*" "_") { plumberTypes = Just productTypes
+                                     , plumberOpE   = (\l r -> TupE [l, r]) }
 
 compositionSpec :: PlumberSpec
-compositionSpec = (baseSpec "$" "$")    { plumberTypes = Just compositionTypes }
+compositionSpec = (baseSpec "$" "$") { plumberTypes = Just compositionTypes }
 
-lbindSpec :: PlumberSpec
-lbindSpec       = (baseSpec "<=" "=<<") { plumberTypes = Just lbindTypes }
+lbindSpec  :: PlumberSpec
+lbindSpec  = (baseSpec "<=" "=<<")   { plumberTypes = Just lbindTypes }
 
-rbindSpec :: PlumberSpec
-rbindSpec       = (baseSpec ">=" ">>=") { plumberTypes = Just rbindTypes }
+rbindSpec  :: PlumberSpec
+rbindSpec  = (baseSpec ">=" ">>=")   { plumberTypes = Just rbindTypes }
 
 frbindSpec :: PlumberSpec
-frbindSpec      = (baseSpec ">>" ">>") { plumberTypes = Just $ fbindTypes False }
+frbindSpec = (baseSpec ">>" ">>")    { plumberTypes = Just $ fbindTypes False }
 
 flbindSpec :: PlumberSpec
-flbindSpec      = (baseSpec "<<" "<<") { plumberTypes = Just $ fbindTypes True  }
+flbindSpec = (baseSpec "<<" "<<")    { plumberTypes = Just $ fbindTypes True  }
 
 productTypes :: PlumberTypes
 productTypes = addBaseContext $ baseTypes 

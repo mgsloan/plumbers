@@ -56,6 +56,8 @@ data PlumberSpec = PlumberSpec
  , plumberPrefix  :: String             -- ^ Prefix to use for operator
  }
 
+-- | Creates a plumber spec for the given prefix for the generated operators,
+--   and the name of the infix operator to use to construct the implementation.
 baseSpec :: String -> String -> PlumberSpec
 baseSpec p e = PlumberSpec
   { plumberOpE      = (\l r -> InfixE (Just l) (mkVE e) (Just r))

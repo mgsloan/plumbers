@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This module contains the bind
+-- This module contains the plumbing variants of monad operators.
 --
 -----------------------------------------------------------------------------
 module Control.Plumbers.Monad where
