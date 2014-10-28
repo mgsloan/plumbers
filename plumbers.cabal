@@ -2,8 +2,8 @@ Name:                plumbers
 Version:             0.0.1
 Cabal-Version:       >= 1.6
 Synopsis:            Pointless plumbing combinators
-Category:            Combinators, Composition, Utils
-Description:         
+Category:            ACME
+Description:
 License:             BSD3
 License-file:        LICENSE
 Author:              Michael Sloan
@@ -11,7 +11,7 @@ Maintainer:          Michael Sloan <mgsloan at gmail>
 Stability:           experimental
 Build-Type:          Simple
 Source-repository head
-  type:              git 
+  type:              git
   location:          git://github.com/mgsloan/plumbers.git
 
 Library
