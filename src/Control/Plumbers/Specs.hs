@@ -17,7 +17,11 @@ module Control.Plumbers.Specs where
 import Control.Plumbers.TH
 
 import Language.Haskell.TH
+#if MIN_VERSION_template_haskell(2,10,0)
+  (Exp(TupE), Type(AppT, ForallT, ConT), mkName)
+#else
   (Exp(TupE), Type(AppT, ForallT), Pred(ClassP), mkName)
+#endif
 
 productSpec :: PlumberSpec
 productSpec     = (baseSpec "*" "_") { plumberTypes = Just productTypes
@@ -77,6 +81,10 @@ fbindTypes b = addMonadContext . addBaseContext $ baseTypes
 addMonadContext x = x { resultType = addForalls mforall               $ resultType x }
  where
   m = mkVT "m"
+#if MIN_VERSION_template_haskell(2,10,0)
+  mforall = (ForallT [mkVB "m"] [AppT (ConT $ mkName "Monad") m] undefined)
+#else
   mforall = (ForallT [mkVB "m"] [ClassP (mkName "Monad") [m]] undefined)
+#endif
 
 addBaseContext x = x { resultType = addForalls (resultType baseTypes) $ resultType x }

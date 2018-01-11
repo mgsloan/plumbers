@@ -1,5 +1,5 @@
 Name:                plumbers
-Version:             0.0.3
+Version:             0.0.4
 Cabal-Version:       >= 1.6
 Synopsis:            Pointless plumbing combinators
 Category:            ACME
@@ -15,7 +15,7 @@ Source-repository head
   location:          git://github.com/mgsloan/plumbers.git
 
 Library
-  Extensions:        TemplateHaskell
+  Extensions:        TemplateHaskell, CPP
   Build-Depends:     base >= 4.2 && < 5,
                      template-haskell >= 2.4 && < 3
   Hs-source-dirs:    src
